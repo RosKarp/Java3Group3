@@ -1,10 +1,9 @@
+// Это ДЗ к 3 уроку.
 package ru.GeekBrains.Rostislav.Java3Group3.lesson2.ClientSide;
 
 import javax.swing.*;
 import java.awt.*;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.net.Socket;
 
 public class Client1 extends JFrame {
@@ -17,6 +16,12 @@ public class Client1 extends JFrame {
     private DataOutputStream out;
 
     private boolean isAuthorized;
+
+    private final int showLastMessage = 100;
+    private final String pathHistory1 = "C:\\Users\\Ростислав\\IdeaProjects\\GB\\src\\ru\\GeekBrains\\Rostislav\\Java3Group3\\lesson2\\ClientSide\\history_login1.txt";
+    private File history1 = null;
+    private BufferedWriter writer;
+    private BufferedReader reader;
 
     public Client1() {
         setTitle("Chat");
@@ -49,7 +54,43 @@ public class Client1 extends JFrame {
         send.addActionListener(e -> send());
         message.addActionListener(e -> send());
 
+        try {
+            history1.exists();
+        } catch (NullPointerException e) {
+            history1 = new File(pathHistory1); // создаем файл записи истории чата при условии, что он еще не создан
+        }
+        String s = "";
+        try {
+            writer = new BufferedWriter(new FileWriter(history1, true));
+            reader = new BufferedReader(new FileReader(history1));
+            int count = countLines(history1);           // подсчет числа строк в файле
+            int skip = count - showLastMessage - 1;
+
+            for (int i = 0; i < count; i++) {
+                if (skip > 0) {
+                    for (int j = 0; j < skip; j++) {
+                        reader.readLine();              // пропускаем первые skip строк
+                    }
+                }
+                if((s = reader.readLine()) != null) {
+                    chatArea.append(s + "\n");          // вывод истории чата в окно клиента
+                    skip = -1;
+                }
+            }
+           reader.close();
+        } catch (IOException e) {
+            System.out.println("File for chat logging not found.");
+        }
         setVisible(true);
+    }
+
+    public int countLines(File input) throws IOException {
+        try (InputStream is = new FileInputStream(input)) {
+            int count = 1;
+            for (int aChar = 0; aChar != -1; aChar = is.read())
+                count += aChar == '\n' ? 1 : 0;
+            return count;
+        }
     }
     public void start() {
         try {
@@ -73,7 +114,14 @@ public class Client1 extends JFrame {
                     }
                     while (true) {
                         String strFromServer = in.readUTF();
+                        try {
+                            writer.write(strFromServer + "\n");  // запись окна чата в файл
+                            writer.flush();
+                        } catch (IOException e) {
+                            System.out.println("Error of write log file.");
+                        }
                         if (strFromServer.equalsIgnoreCase("/end")) {
+                            writer.close();             // закрытие потока записи при выходе
                             break;
                         }
                         chatArea.append(strFromServer);

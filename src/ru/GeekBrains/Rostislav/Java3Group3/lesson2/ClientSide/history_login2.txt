@@ -1,0 +1,18 @@
+/clients nick1 nick2 
+nick2: 22222222222222
+nick3 зашел в чат
+/clients nick1 nick2 nick3 
+nick3: 33333333
+nick3: 4444444444
+nick2: hello all2
+nick3: hello all3
+nick1: hello all1
+/clients nick1 nick2 
+nick3 вышел из чата
+/clients nick1 nick2 
+nick2: dsfsdfsdf
+nick3 зашел в чат
+/clients nick1 nick2 nick3 
+nick3: zzzzzzzzzzzzzzzzzz
+/clients nick1 nick2 
+nick3 вышел из чата
