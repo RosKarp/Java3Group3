@@ -1,0 +1,8 @@
+/clients nick1 nick2 nick3 
+nick3: 33333333
+nick3: 4444444444
+nick2: hello all2
+nick3: hello all3
+nick1: hello all1
+/clients nick1 nick2 nick3 
+nick3: zzzzzzzzzzzzzzzzzz

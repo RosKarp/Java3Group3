@@ -1,4 +1,4 @@
-// В этом классе решение п.2 ДЗ
+// В этом классе решение п.2 ДЗ 2 урока
 
 package ru.GeekBrains.Rostislav.Java3Group3.lesson2.ServerSide;
 

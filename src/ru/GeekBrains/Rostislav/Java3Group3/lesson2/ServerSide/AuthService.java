@@ -5,3 +5,4 @@ public interface AuthService {
     String getNickByLoginPass(String login, String pass);
     void stop();
 }
+///
