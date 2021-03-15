@@ -1,4 +1,5 @@
-// В этом классе решение п.2 ДЗ 2 урока
+// В этом классе (и еще в MyServer) решение п.2 ДЗ 4 урока. Другие классы по чату относительно 3 урока не менялись,
+// поэтому в пакет к 4 уроку не добавлены.
 
 package ru.GeekBrains.Rostislav.Java3Group3.lesson2.ServerSide;
 
@@ -8,9 +9,7 @@ import java.io.IOException;
 import java.net.Socket;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.util.concurrent.Exchanger;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+import java.util.concurrent.*;
 
 public class ClientHandler {
         private final MyServer myServer;
@@ -26,6 +25,7 @@ public class ClientHandler {
         }
         private static final long authorizationBlockingTime = 180000; // 3 минуты блокировки при неправильном логине или пароле
         private String strFromClient = "";
+        ExecutorService service;
 
         public ClientHandler(MyServer myServer, Socket socket) {
             try {
@@ -39,8 +39,11 @@ public class ClientHandler {
                 Exchanger<String> ex = new Exchanger<>();        // обменник для передачи name после авторизации
                 Exchanger<String> ex2 = new Exchanger<>();      // обменник для передачи сообщения после авторизации
 
-                new Thread(new PutThread(ex, ex2)).start();          // поток для авторизации
-                new Thread(new GetThread(ex, ex2)).start();       // поток для отключения по таймауту
+                service = Executors.newFixedThreadPool(2); // решение п.2 ДЗ 4 урока
+                service.execute(new PutThread(ex, ex2));
+                service.execute(new GetThread(ex, ex2));
+                /*new Thread(new PutThread(ex, ex2)).start();  // поток для авторизации      СТАРЫЙ ВАРИАНТ
+                new Thread(new GetThread(ex, ex2)).start();*/  // поток для отключения по таймауту
 
             } catch (IOException e) {
                 throw new RuntimeException("Проблемы при создании обработчика клиента");
@@ -81,6 +84,8 @@ public class ClientHandler {
             while (message.equals("")) {
                 try {
                     if(System.currentTimeMillis() - clientConnectionTime > 120000) {    // 2 минуты на авторизацию
+                        // этот блок теперь лишний, т.к. все клиенты переделаны на подключение при вводе логин/пароль,
+                        // раньше было подключение при создании окна
                         sendMsg("Время ожидания авторизации истекло, сервер разорвал соединение.");
                         closeConnection();
                         break;
@@ -94,6 +99,7 @@ public class ClientHandler {
             while (message.equals("")) {
                 try {
                     if(System.currentTimeMillis() - clientAuthenticationTime > 180000) {    // 3 минуты на отправку сообщения после авторизации
+                        sendMsg("Время ожидания сообщения истекло, сервер разорвал соединение.");
                         closeConnection();
                         break;
                     }
@@ -153,9 +159,10 @@ public class ClientHandler {
                 if (strFromClient.equals("/end")) {
                     return;
                 }
-                if (strFromClient.startsWith("/changenick")) {                          // реализация возможности смены nick через обновление БД (команда: /changenick [новый ник] )
+                if (strFromClient.startsWith("/changenick")) { // реализация возможности смены nick
+                                                        // через обновление БД (команда: /changenick [новый ник] )
                     String newNick = strFromClient.substring(12, strFromClient.length());
-                    try (PreparedStatement ps = BaseAuthService.con.prepareStatement("UPDATE members SET nick = ? WHERE nick = ?"))
+     try (PreparedStatement ps = BaseAuthService.con.prepareStatement("UPDATE members SET nick = ? WHERE nick = ?"))
                     {
                         ps.setString(1, newNick);
                         ps.setString(2, name);
@@ -172,7 +179,7 @@ public class ClientHandler {
                         builder.append(toOne[i]).append(" ");
                     }
                     String message = builder.toString();
-                    myServer.toOneMsg(this, nick, message);                        // персональное сообщение
+                    myServer.toOneMsg(this, nick, message);                  // персональное сообщение
                 } else {
                     myServer.broadcastMsg(name + ": " + strFromClient);
                 }
@@ -209,5 +216,6 @@ public class ClientHandler {
             } catch (IOException e) {
                 e.printStackTrace();
             }
+            service.shutdown();                     // отключение ExecutorService
         }
     }

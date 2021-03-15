@@ -1,3 +1,6 @@
+// В этом классе (и еще в ClientHandler) решение п.2 ДЗ 4 урока. Другие классы по чату относительно 3 урока не менялись,
+// поэтому в пакет к 4 уроку не добавлены.
+
 package ru.GeekBrains.Rostislav.Java3Group3.lesson2.ServerSide;
 
 import java.io.BufferedReader;
@@ -7,6 +10,8 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class MyServer {
 
@@ -25,19 +30,23 @@ public class MyServer {
                 authService = new BaseAuthService();
                 authService.start();
                 clients = new ArrayList<>();
-                new Thread(() -> {
-                    while (true) {
+
+                ExecutorService executorService = Executors.newSingleThreadExecutor();
+                executorService.execute(() -> {
+                    while (true) {          // реализация потока через ExecutorService
                         try {
-                            if(stopServer.readLine().equals("/stop")) {   // для остановки сервера из консоли набрать /stop
+                            if(stopServer.readLine().equals("/stop")) {// для остановки сервера из консоли набрать /stop
                                 broadcastMsg("Сервер выключен администратором.");
                                 authService.stop();
+                                executorService.shutdown();     // отключение ExecutorService
                                 System.exit(0);
                             }
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
                     }
-                }).start();
+                });
+
                 while (true) {
                     System.out.println("Сервер ожидает подключения");
                     Socket socket = server.accept();
@@ -75,7 +84,7 @@ public class MyServer {
                          o.sendMsg(msg);
                      }
              }
-        public synchronized void toOneMsg(ClientHandler from, String nick, String msg) {            // персональное сообщение
+        public synchronized void toOneMsg(ClientHandler from, String nick, String msg) {     // персональное сообщение
             for (ClientHandler o : clients) {
                 if(o.getName().equals(nick) && !nick.equals("")) {
                     o.sendMsg("от " + from.getName() + ": " + msg);
@@ -95,4 +104,4 @@ public class MyServer {
             clients.add(o);
             broadcastClientsList();
         }
-} ///
+}
